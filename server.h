@@ -20,6 +20,8 @@ private:
 
 	QTcpServer *chatServer;
 	QVector<QTcpSocket*> *allClients;
+
+	void recentChat(QTcpSocket*);
 public:
 	explicit server(QObject *parent = nullptr);
 

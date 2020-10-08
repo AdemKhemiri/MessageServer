@@ -29,12 +29,14 @@ void server::newClientConnection()
 	QString ipAdress = client->peerAddress().toString();
 	int port = client->peerPort();
 
-	connect(client,&QTcpSocket::disconnected, this, &server::socketDisconnected);
+	connect(client, &QTcpSocket::disconnected, this, &server::socketDisconnected);
 	connect(client, &QTcpSocket::readyRead, this, &server::socketReadyRead);
 	connect(client, &QTcpSocket::stateChanged, this, &server::socketStateChanged);
 
 	allClients->push_back(client);
     qDebug() << "Socket connected from: " + ipAdress + ":" + QString::number(port) + "Server Port: " + serverPort;
+	//client->write("Hello new commer"); CHAT WHEN DISCONNECTED
+	recentChat(client);
 
 }
 
@@ -103,5 +105,19 @@ void server::sendMessageToClients(QString msg)
 
 			}
 		}
+	}
+}
+void server::recentChat(QTcpSocket *client)
+{
+	if(!Logs.open(QIODevice::ReadOnly))
+	{
+		qDebug() << "File not found.";
+		return;
+	}
+	QTextStream in(&Logs);
+	while(!in.atEnd())
+	{
+		QString line = in.readLine();
+		client->write(line.toUtf8());
 	}
 }
