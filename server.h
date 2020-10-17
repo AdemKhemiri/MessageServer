@@ -21,23 +21,23 @@ private:
 	QTcpServer *chatServer;
 	QVector<QTcpSocket*> *allClients;
 
-	void recentChat(QTcpSocket*);
+    void recentChat(QTcpSocket*);
 public:
 	explicit server(QObject *parent = nullptr);
 
-    server(int port)
+    server(int port)            //////////////// CONSTRUCTOR ////////////////////////
         : serverPort{port}{
         QString name ;
         name = "Logs for Port " + QString::number(serverPort);
         Logs.setFileName(name);
         if(!Logs.open(QIODevice::Append))
             {
-                qDebug() << "FIle does not exists";
+                qDebug() << "File does not exists from server.h";
                 //return;
             }
-
+        Logs.close();
     };
-
+    ~server() {Logs.close();} /////////////////// DESTRUCTOR ////////////////////////
 	void startServer();
 	void sendMessageToClients(QString msg);
 public slots:

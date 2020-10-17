@@ -11,8 +11,8 @@ void server::startServer()
 	chatServer = new QTcpServer();
 
 	chatServer->setMaxPendingConnections(10);
-	connect(chatServer,SIGNAL(newConnection()), this, SLOT(newClientConnection()));
-    //QHostInfo info = QHostInfo::fromName("qt-project.org");
+    connect(chatServer,SIGNAL(newConnection()), this, SLOT(newClientConnection()));
+
     if(chatServer->listen(QHostAddress::Any, serverPort))
     {
 		qDebug() << "Server has started. Listen to port "+ QString::number(serverPort);
@@ -33,10 +33,18 @@ void server::newClientConnection()
 	connect(client, &QTcpSocket::readyRead, this, &server::socketReadyRead);
 	connect(client, &QTcpSocket::stateChanged, this, &server::socketStateChanged);
 
+    recentChat(client);         // PREVIOUS CHAT AFTER DISCONNECTED
+
 	allClients->push_back(client);
+
+    QByteArray dat;
+    QTextStream out(&dat);
+    out << allClients;
+    client->write(dat);
+
     qDebug() << "Socket connected from: " + ipAdress + ":" + QString::number(port) + "Server Port: " + serverPort;
-	//client->write("Hello new commer"); CHAT WHEN DISCONNECTED
-	recentChat(client);
+
+
 
 }
 
@@ -60,10 +68,15 @@ void server::socketReadyRead()
 	QString data = QString(client->readAll());
 
     qDebug() << "Message :" + data + " ("+socketIpAddress +":"+ QString::number(port) +")"; // Try implementing file logs here
-
+    if(!Logs.open(QIODevice::Append))
+    {
+        qDebug() << "File doesn't exist in socketReadyRead";
+        //return;
+    }
     QTextStream out(&Logs);
     out << "Message :" + data + " ("+socketIpAddress +":"+ QString::number(port) +")\n";
 	sendMessageToClients(data);
+    Logs.close();
 }
 
 void server::socketStateChanged(QAbstractSocket::SocketState state)
@@ -109,15 +122,29 @@ void server::sendMessageToClients(QString msg)
 }
 void server::recentChat(QTcpSocket *client)
 {
-	if(!Logs.open(QIODevice::ReadOnly))
+    //qDebug() << "Recent Chat is Called";;
+    if(!Logs.open(QIODevice::ReadOnly))
 	{
-		qDebug() << "File not found.";
-		return;
+        qDebug() << "File not found from recentChat.";
+        //return;
 	}
 	QTextStream in(&Logs);
 	while(!in.atEnd())
 	{
-		QString line = in.readLine();
-		client->write(line.toUtf8());
+        QString line = in.readLine();
+
+        if(line.contains("color='Blue'"))
+        {
+
+            line.remove("Message :");
+            line.remove(line.indexOf(" (::"),line.length());
+            line.append("<br/>");
+
+            //line.insert(line.length(),"<br/>");
+            //qDebug() << line.toUtf8();
+            client->write(line.toUtf8());
+            //client->write(line.append("\n").toUtf8());
+        }
 	}
+    Logs.close();
 }
